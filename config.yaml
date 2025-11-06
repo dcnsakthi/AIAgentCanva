@@ -1,0 +1,112 @@
+application:
+  name: "MAF Agent Builder"
+  version: "1.0.0"
+  description: "Enterprise-grade AI Agent Builder with Microsoft Agent Framework"
+  
+llm_providers:
+  azure_openai:
+    enabled: true
+    models:
+      - name: "gpt-4"
+        display_name: "GPT-4"
+        max_tokens: 8192
+      - name: "gpt-4-32k"
+        display_name: "GPT-4 32K"
+        max_tokens: 32768
+      - name: "gpt-35-turbo"
+        display_name: "GPT-3.5 Turbo"
+        max_tokens: 4096
+  
+  openai:
+    enabled: true
+    models:
+      - name: "gpt-4-turbo-preview"
+        display_name: "GPT-4 Turbo"
+        max_tokens: 128000
+      - name: "gpt-3.5-turbo"
+        display_name: "GPT-3.5 Turbo"
+        max_tokens: 16385
+
+vector_databases:
+  chromadb:
+    enabled: true
+    persistent: true
+    path: "./data/chromadb"
+  
+  faiss:
+    enabled: true
+    index_type: "IndexFlatL2"
+  
+  pinecone:
+    enabled: false
+  
+  qdrant:
+    enabled: false
+  
+  weaviate:
+    enabled: false
+
+agent_types:
+  - id: "assistant"
+    name: "Assistant Agent"
+    icon: "🤖"
+    description: "General-purpose conversational agent"
+    default_system_prompt: "You are a helpful AI assistant."
+  
+  - id: "researcher"
+    name: "Research Agent"
+    icon: "🔍"
+    description: "Agent specialized in research and information gathering"
+    default_system_prompt: "You are a research assistant that finds and synthesizes information."
+  
+  - id: "coder"
+    name: "Code Agent"
+    icon: "💻"
+    description: "Agent specialized in code generation and analysis"
+    default_system_prompt: "You are an expert programmer who writes clean, efficient code."
+  
+  - id: "data_analyst"
+    name: "Data Analyst Agent"
+    icon: "📊"
+    description: "Agent specialized in data analysis and visualization"
+    default_system_prompt: "You are a data analyst who interprets and visualizes data."
+  
+  - id: "team_manager"
+    name: "Team Manager"
+    icon: "👔"
+    description: "Orchestrates multiple agents"
+    default_system_prompt: "You coordinate a team of AI agents to accomplish complex tasks."
+
+canvas_settings:
+  grid_size: 20
+  default_node_width: 200
+  default_node_height: 100
+  max_agents: 50
+  connection_types:
+    - "sequential"
+    - "parallel"
+    - "conditional"
+
+evaluation:
+  default_metrics:
+    - "response_accuracy"
+    - "response_time"
+    - "token_usage"
+    - "success_rate"
+  
+  assertion_types:
+    - "contains"
+    - "not_contains"
+    - "equals"
+    - "matches_regex"
+    - "length_greater_than"
+    - "length_less_than"
+
+deployment:
+  azure:
+    default_region: "eastus"
+    container_apps:
+      cpu: 0.5
+      memory: "1Gi"
+      min_replicas: 1
+      max_replicas: 10
