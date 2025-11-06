@@ -229,7 +229,7 @@ def show_deployment_interface():
         4. **Login to Azure**: Run `az login` if not already authenticated
         5. **Run Deployment Script**:
            - **Linux/Mac**: `bash deploy.sh`
-           - **Windows PowerShell**: `.\deploy.ps1`
+           - **Windows PowerShell**: `.\\deploy.ps1`
         
         ### Alternative: Manual Deployment
         

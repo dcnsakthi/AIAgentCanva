@@ -358,11 +358,16 @@ def render_agent_graph():
     
     # Convert edges
     for edge in st.session_state.canvas_edges:
-        edges.append(Edge(
-            source=edge['source'],
-            target=edge['target'],
-            type="CURVE_SMOOTH"
-        ))
+        # Handle both dictionary formats (with 'source'/'target' or 'from'/'to')
+        source = edge.get('source') or edge.get('from')
+        target = edge.get('target') or edge.get('to')
+        
+        if source and target:
+            edges.append(Edge(
+                source=source,
+                target=target,
+                type="CURVE_SMOOTH"
+            ))
     
     # Graph configuration
     config = Config(
