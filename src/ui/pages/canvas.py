@@ -21,6 +21,10 @@ def show():
     st.markdown(f"<h1 class='main-header'>🎨 Canvas Studio</h1>", unsafe_allow_html=True)
     st.markdown(f"**Project:** {st.session_state.project.get('name', 'Untitled')}")
     
+    # Show template guide if loaded from template
+    if st.session_state.get('template_loaded') and st.session_state.get('show_template_guide'):
+        show_template_guide()
+    
     # Main layout
     col1, col2 = st.columns([3, 1])
     
@@ -30,16 +34,85 @@ def show():
     with col2:
         show_properties_panel()
 
+def show_template_guide():
+    """Show helpful guide when template is loaded"""
+    
+    project = st.session_state.project
+    template_meta = project.get('template_metadata', {})
+    
+    with st.container():
+        st.info(f"""
+        **✅ Template Loaded: {template_meta.get('template_name', 'Unknown')}**
+        
+        **What's Ready:**
+        - ✅ {len(project.get('agents', []))} agents configured with roles and prompts
+        - ✅ {len(project.get('connections', []))} connections defining the workflow
+        - ✅ Auto-layout applied for clear visualization
+        - ✅ Ready to test in sandbox
+        
+        **Next Steps:**
+        1. **Review**: Check agents and connections below
+        2. **Customize**: Click any agent to edit prompts and settings
+        3. **Test**: Go to Sandbox to test with sample queries
+        4. **Save**: Use the Save button to preserve changes
+        
+        **Quick Actions:**
+        """)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("🧪 Test in Sandbox", use_container_width=True, type="primary"):
+                st.session_state.current_page = 'sandbox'
+                st.session_state.show_template_guide = False
+                st.rerun()
+        
+        with col2:
+            if st.button("📋 View Use Cases", use_container_width=True):
+                st.session_state.show_use_cases = True
+                st.rerun()
+        
+        with col3:
+            if st.button("💾 Save Project", use_container_width=True):
+                save_project()
+                st.success("Project saved!")
+        
+        with col4:
+            if st.button("❌ Dismiss", use_container_width=True):
+                st.session_state.show_template_guide = False
+                st.rerun()
+    
+    # Show use cases if requested
+    if st.session_state.get('show_use_cases'):
+        with st.expander("📋 Template Use Cases", expanded=True):
+            use_cases = template_meta.get('use_cases', [])
+            if use_cases:
+                for i, use_case in enumerate(use_cases, 1):
+                    st.markdown(f"{i}. {use_case}")
+            else:
+                st.info("No specific use cases documented for this template.")
+            
+            if st.button("Close Use Cases"):
+                st.session_state.show_use_cases = False
+                st.rerun()
+    
+    st.markdown("---")
+
 def show_canvas():
     """Display the main canvas with drag-and-drop functionality"""
     
     st.markdown("### Agent Canvas")
     
-    # Initialize canvas data
-    if 'canvas_nodes' not in st.session_state:
-        st.session_state.canvas_nodes = []
+    # Initialize canvas data from project if not already set
+    if 'canvas_nodes' not in st.session_state or st.session_state.get('template_loaded'):
+        # Load from project
+        st.session_state.canvas_nodes = st.session_state.project.get('agents', [])
+        if st.session_state.get('template_loaded'):
+            st.session_state.template_loaded = False  # Reset flag after loading
+    
     if 'canvas_edges' not in st.session_state:
-        st.session_state.canvas_edges = []
+        st.session_state.canvas_edges = st.session_state.project.get('connections', [])
+    
     if 'selected_node' not in st.session_state:
         st.session_state.selected_node = None
     if 'show_agent_selector' not in st.session_state:

@@ -283,11 +283,25 @@ def show_templates():
                             use_container_width=True,
                             type="primary"
                         ):
-                            project = AgentTemplate.load_template_as_project(template)
-                            st.session_state.project = project
-                            st.session_state.current_page = 'canvas'
-                            st.success(f"✅ Loaded template: {template['name']}")
-                            st.rerun()
+                            with st.spinner(f"Loading template: {template['name']}..."):
+                                # Load template as fully configured project
+                                project = AgentTemplate.load_template_as_project(template)
+                                
+                                # Store in session state
+                                st.session_state.project = project
+                                st.session_state.template_loaded = True
+                                st.session_state.show_template_guide = True
+                                
+                                # Initialize canvas state
+                                st.session_state.canvas_agents = project['agents']
+                                st.session_state.canvas_connections = project['connections']
+                                
+                                # Set flag to show in canvas
+                                st.session_state.current_page = 'canvas'
+                                
+                                st.success(f"✅ Template loaded successfully!")
+                                st.info("🎨 Opening canvas with auto-layout applied. All agents and connections are ready for review and testing.")
+                                st.rerun()
                         
                         st.markdown("<br>", unsafe_allow_html=True)
 

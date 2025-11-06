@@ -632,17 +632,152 @@ class AgentTemplate:
     
     @staticmethod
     def load_template_as_project(template: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert template to project format"""
-        return {
+        """Convert template to project format with full canvas setup"""
+        
+        # Prepare agents with complete configuration
+        agents = []
+        for agent in template.get('agents', []):
+            agents.append({
+                'id': agent['id'],
+                'name': agent['name'],
+                'type': agent['type'],
+                'role': agent['role'],
+                'system_prompt': agent['system_prompt'],
+                'position': agent.get('position', {'x': 100, 'y': 100}),
+                'llm_config': {
+                    'model': 'gpt-4',
+                    'temperature': 0.7,
+                    'max_tokens': 2000
+                },
+                'tools': template.get('tools', []),
+                'human_input_mode': 'NEVER',
+                'max_consecutive_auto_reply': 10,
+                'code_execution_config': False if agent['type'] != 'coder' else {
+                    'work_dir': 'workspace',
+                    'use_docker': False
+                }
+            })
+        
+        # Prepare connections with workflow metadata
+        connections = []
+        for conn in template.get('connections', []):
+            connections.append({
+                'id': f"conn_{conn['from']}_{conn['to']}",
+                'from': conn['from'],
+                'to': conn['to'],
+                'type': conn.get('type', 'sequential'),
+                'condition': conn.get('condition', None),
+                'label': f"{conn.get('type', 'sequential').title()} Flow"
+            })
+        
+        # Calculate auto-layout if positions not properly set
+        agents_with_layout = AgentTemplate._apply_auto_layout(agents, connections)
+        
+        # Create project with complete metadata
+        project = {
             'id': f"project_{datetime.now().timestamp()}",
             'name': template['name'],
             'description': template['description'],
             'category': template.get('category', 'General'),
             'complexity': template.get('complexity', 'Moderate'),
-            'agents': template.get('agents', []),
-            'connections': template.get('connections', []),
+            'agents': agents_with_layout,
+            'connections': connections,
             'tools': template.get('tools', []),
             'created_at': datetime.now().isoformat(),
             'last_modified': datetime.now().isoformat(),
-            'from_template': template['id']
+            'from_template': template['id'],
+            'template_metadata': {
+                'template_id': template['id'],
+                'template_name': template['name'],
+                'use_cases': template.get('use_cases', []),
+                'estimated_setup_time': template.get('estimated_setup_time', 'Unknown')
+            },
+            'canvas_state': {
+                'zoom': 1.0,
+                'pan_x': 0,
+                'pan_y': 0,
+                'auto_layout_applied': True,
+                'ready_for_testing': True
+            },
+            'execution_state': {
+                'status': 'ready',
+                'test_cases': [],
+                'last_test_run': None
+            }
         }
+        
+        return project
+    
+    @staticmethod
+    def _apply_auto_layout(agents: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Apply automatic graph layout to agents"""
+        
+        # Build adjacency list for graph analysis
+        graph = {}
+        in_degree = {}
+        
+        for agent in agents:
+            graph[agent['id']] = []
+            in_degree[agent['id']] = 0
+        
+        for conn in connections:
+            if conn['from'] in graph:
+                graph[conn['from']].append(conn['to'])
+                if conn['to'] in in_degree:
+                    in_degree[conn['to']] += 1
+        
+        # Find root nodes (nodes with no incoming edges)
+        roots = [node for node, degree in in_degree.items() if degree == 0]
+        
+        # If no clear root, use all nodes as potential roots
+        if not roots:
+            roots = list(graph.keys())
+        
+        # Perform level-based layout
+        levels = {}
+        visited = set()
+        
+        def assign_level(node, level):
+            if node in visited:
+                return
+            visited.add(node)
+            if node not in levels:
+                levels[node] = level
+            else:
+                levels[node] = max(levels[node], level)
+            for neighbor in graph.get(node, []):
+                assign_level(neighbor, level + 1)
+        
+        for root in roots:
+            assign_level(root, 0)
+        
+        # Assign any unvisited nodes to level 0
+        for agent in agents:
+            if agent['id'] not in levels:
+                levels[agent['id']] = 0
+        
+        # Calculate positions based on levels
+        level_counts = {}
+        for node, level in levels.items():
+            level_counts[level] = level_counts.get(level, 0) + 1
+        
+        level_indices = {}
+        for agent in agents:
+            node_id = agent['id']
+            level = levels[node_id]
+            
+            if level not in level_indices:
+                level_indices[level] = 0
+            
+            # Calculate position
+            x = 100 + level * 300  # Horizontal spacing
+            
+            # Vertical centering within level
+            total_in_level = level_counts[level]
+            y_offset = (level_indices[level] - (total_in_level - 1) / 2) * 200
+            y = 250 + y_offset  # Base vertical position + offset
+            
+            agent['position'] = {'x': x, 'y': y}
+            level_indices[level] += 1
+        
+        return agents
