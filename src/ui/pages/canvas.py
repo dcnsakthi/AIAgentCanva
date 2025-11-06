@@ -303,18 +303,20 @@ def show_connection_dialog():
         else:
             # Check if connection already exists
             existing = any(
-                e['source'] == source_id and e['target'] == target_id 
+                (e.get('source') or e.get('from')) == source_id and 
+                (e.get('target') or e.get('to')) == target_id 
                 for e in st.session_state.canvas_edges
             )
             
             if existing:
                 st.warning("⚠️ This connection already exists")
             else:
-                # Add edge
+                # Add edge (using 'from'/'to' format to match template format)
                 edge = {
-                    'source': source_id,
-                    'target': target_id,
-                    'label': connection_label if connection_label else None
+                    'from': source_id,
+                    'to': target_id,
+                    'label': connection_label if connection_label else None,
+                    'type': 'sequential'
                 }
                 st.session_state.canvas_edges.append(edge)
                 st.success(f"✅ Connected {source_name} → {target_name}")
@@ -327,8 +329,12 @@ def show_connection_dialog():
         st.markdown("**Existing Connections:**")
         
         for i, edge in enumerate(st.session_state.canvas_edges):
-            source_node = next((n for n in st.session_state.canvas_nodes if n['id'] == edge['source']), None)
-            target_node = next((n for n in st.session_state.canvas_nodes if n['id'] == edge['target']), None)
+            # Handle both 'source'/'target' and 'from'/'to' formats
+            source_id = edge.get('source') or edge.get('from')
+            target_id = edge.get('target') or edge.get('to')
+            
+            source_node = next((n for n in st.session_state.canvas_nodes if n['id'] == source_id), None)
+            target_node = next((n for n in st.session_state.canvas_nodes if n['id'] == target_id), None)
             
             if source_node and target_node:
                 col1, col2 = st.columns([4, 1])
@@ -411,7 +417,9 @@ def show_properties_panel():
 def show_agent_properties(node: Dict[str, Any]):
     """Display and edit agent properties"""
     
-    st.markdown(f"#### {node['icon']} {node['name']}")
+    # Get icon with fallback
+    icon = node.get('icon', '🤖')
+    st.markdown(f"#### {icon} {node['name']}")
     
     with st.form(key=f"props_{node['id']}"):
         # Basic properties
@@ -460,11 +468,18 @@ def show_agent_properties(node: Dict[str, Any]):
         
         # Tools
         st.markdown("##### 🛠️ Tools")
-        available_tools = ["Web Search", "Code Execution", "Data Analysis", "Document Processing"]
+        available_tools = ["Web Search", "Code Execution", "Data Analysis", "Document Processing", "API Integration", "Database Query"]
+        
+        # Filter agent's tools to only include valid options
+        current_tools = node.get('tools', [])
+        if isinstance(current_tools, str):
+            current_tools = [current_tools]
+        valid_tools = [tool for tool in current_tools if tool in available_tools]
+        
         node['tools'] = st.multiselect(
             "Select Tools",
             available_tools,
-            default=node.get('tools', [])
+            default=valid_tools
         )
         
         # Vector Database
@@ -569,8 +584,13 @@ def layout_hierarchical():
     in_degree = {node['id']: 0 for node in st.session_state.canvas_nodes}
     
     for edge in st.session_state.canvas_edges:
-        graph[edge['source']].append(edge['target'])
-        in_degree[edge['target']] += 1
+        # Handle both 'source'/'target' and 'from'/'to' formats
+        source = edge.get('source') or edge.get('from')
+        target = edge.get('target') or edge.get('to')
+        
+        if source and target and source in graph and target in in_degree:
+            graph[source].append(target)
+            in_degree[target] += 1
     
     # Find root nodes (no incoming edges)
     roots = [node_id for node_id, degree in in_degree.items() if degree == 0]

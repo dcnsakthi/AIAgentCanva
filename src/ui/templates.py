@@ -636,11 +636,22 @@ class AgentTemplate:
         
         # Prepare agents with complete configuration
         agents = []
+        
+        # Map agent types to icons
+        agent_type_icons = {
+            'team_manager': '👨‍💼',
+            'assistant': '🤖',
+            'coder': '💻',
+            'researcher': '🔬',
+            'data_analyst': '📊'
+        }
+        
         for agent in template.get('agents', []):
             agents.append({
                 'id': agent['id'],
                 'name': agent['name'],
                 'type': agent['type'],
+                'icon': agent.get('icon', agent_type_icons.get(agent['type'], '🤖')),
                 'role': agent['role'],
                 'system_prompt': agent['system_prompt'],
                 'position': agent.get('position', {'x': 100, 'y': 100}),
