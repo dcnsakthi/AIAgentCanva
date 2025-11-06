@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from src.utils.config_loader import ConfigLoader
 from src.agents.project_generator import ProjectGenerator
+from src.ui.templates import AgentTemplate
 
 def show():
     """Display landing page"""
@@ -184,71 +185,111 @@ def show_load_project():
             st.markdown("---")
 
 def show_templates():
-    """Display available templates"""
+    """Display available templates with enhanced filtering"""
     
-    st.markdown("#### Start from a Template")
+    st.markdown("#### 📚 Start from a Template")
     st.markdown("Choose from pre-built playbooks and scenes")
     
-    templates = [
-        {
-            'name': 'Customer Support Team',
-            'description': 'Multi-agent system with triage, support, and escalation agents',
-            'agents': 3,
-            'icon': '🎧'
-        },
-        {
-            'name': 'Research Assistant',
-            'description': 'Single agent for research, summarization, and reporting',
-            'agents': 1,
-            'icon': '🔍'
-        },
-        {
-            'name': 'Code Review Pipeline',
-            'description': 'Automated code analysis, testing, and review agents',
-            'agents': 4,
-            'icon': '💻'
-        },
-        {
-            'name': 'Data Analysis Workflow',
-            'description': 'Extract, analyze, visualize, and report on data',
-            'agents': 3,
-            'icon': '📊'
-        }
-    ]
+    # Info section
+    with st.expander("ℹ️ About Templates", expanded=False):
+        st.markdown("""
+        **Templates** are pre-configured agent systems designed for common business scenarios. Each template includes:
+        
+        - 🤖 **Pre-configured agents** with specialized roles and system prompts
+        - 🔗 **Agent connections** defining workflow patterns
+        - 🛠️ **Recommended tools** for the specific use case
+        - 📋 **Use case examples** to guide implementation
+        
+        **Quick Tips:**
+        - Start with a template close to your needs
+        - Customize agents and prompts after loading
+        - Use the canvas to modify workflows visually
+        - Test templates with evaluation tools before deployment
+        """)
     
-    cols = st.columns(2)
+    # Get all templates
+    all_templates = AgentTemplate.get_all_templates()
     
-    for idx, template in enumerate(templates):
-        with cols[idx % 2]:
-            with st.container():
-                st.markdown(f"### {template['icon']} {template['name']}")
-                st.markdown(template['description'])
-                st.caption(f"Agents: {template['agents']}")
+    # Filter controls
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        search_query = st.text_input("🔍 Search templates", placeholder="Search by name, description, or tags...")
+    
+    with col2:
+        categories = ['All'] + sorted(list(set([t['category'] for t in all_templates])))
+        selected_category = st.selectbox("Category", categories)
+    
+    with col3:
+        complexities = ['All', 'Simple', 'Moderate', 'Complex', 'Enterprise']
+        selected_complexity = st.selectbox("Complexity", complexities)
+    
+    # Filter templates
+    filtered_templates = all_templates
+    
+    if search_query:
+        filtered_templates = AgentTemplate.search_templates(search_query)
+    
+    if selected_category != 'All':
+        filtered_templates = [t for t in filtered_templates if t['category'] == selected_category]
+    
+    if selected_complexity != 'All':
+        filtered_templates = [t for t in filtered_templates if t['complexity'] == selected_complexity]
+    
+    # Display count
+    st.markdown(f"*Found {len(filtered_templates)} template(s)*")
+    st.markdown("---")
+    
+    # Display templates in a grid
+    if not filtered_templates:
+        st.info("No templates found matching your criteria.")
+        return
+    
+    # Create 2-column layout for templates
+    for idx in range(0, len(filtered_templates), 2):
+        cols = st.columns(2)
+        
+        for col_idx, col in enumerate(cols):
+            if idx + col_idx < len(filtered_templates):
+                template = filtered_templates[idx + col_idx]
                 
-                if st.button(f"Use Template", key=f"template_{idx}", use_container_width=True):
-                    # Load template
-                    project = load_template(template)
-                    st.session_state.project = project
-                    st.session_state.current_page = 'canvas'
-                    st.rerun()
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-
-def load_template(template: Dict[str, Any]) -> Dict[str, Any]:
-    """Load a project template"""
-    
-    # In production, load from template library
-    project = {
-        'id': f"template_{datetime.now().timestamp()}",
-        'name': template['name'],
-        'description': template['description'],
-        'agents': [],
-        'connections': [],
-        'created_at': datetime.now().isoformat(),
-        'last_modified': datetime.now().isoformat()
-    }
-    
-    return project
+                with col:
+                    with st.container():
+                        # Template card
+                        st.markdown(f"### {template['icon']} {template['name']}")
+                        st.markdown(f"**{template['category']}** • {template['complexity']}")
+                        st.markdown(template['description'])
+                        
+                        # Details in expander
+                        with st.expander("View Details"):
+                            st.markdown(f"**Agents:** {template['agents_count']}")
+                            st.markdown(f"**Setup Time:** {template['estimated_setup_time']}")
+                            
+                            st.markdown("**Use Cases:**")
+                            for use_case in template['use_cases']:
+                                st.markdown(f"- {use_case}")
+                            
+                            st.markdown("**Included Tools:**")
+                            for tool in template['tools']:
+                                st.markdown(f"- {tool}")
+                            
+                            st.markdown("**Tags:**")
+                            st.markdown(", ".join([f"`{tag}`" for tag in template['tags']]))
+                        
+                        # Use template button
+                        if st.button(
+                            "Use This Template",
+                            key=f"template_{template['id']}",
+                            use_container_width=True,
+                            type="primary"
+                        ):
+                            project = AgentTemplate.load_template_as_project(template)
+                            st.session_state.project = project
+                            st.session_state.current_page = 'canvas'
+                            st.success(f"✅ Loaded template: {template['name']}")
+                            st.rerun()
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
 
 def show_stats_panel():
     """Display user statistics"""

@@ -110,3 +110,30 @@ deployment:
       memory: "1Gi"
       min_replicas: 1
       max_replicas: 10
+
+templates:
+  enabled: true
+  categories:
+    - "Customer Service"
+    - "Research & Analysis"
+    - "Software Development"
+    - "Data & Analytics"
+    - "Marketing & Content"
+    - "Sales & CRM"
+    - "Human Resources"
+    - "Finance & Accounting"
+    - "Legal & Compliance"
+    - "IT & Operations"
+    - "E-commerce"
+  
+  complexity_levels:
+    - "Simple"
+    - "Moderate"
+    - "Complex"
+    - "Enterprise"
+  
+  featured_templates:
+    - "customer_support_team"
+    - "research_assistant"
+    - "data_analysis_workflow"
+    - "content_creation_team"
