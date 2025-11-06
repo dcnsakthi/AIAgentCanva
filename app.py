@@ -32,6 +32,36 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 'landing'
 if 'project' not in st.session_state:
     st.session_state.project = None
+if 'visit_count' not in st.session_state:
+    st.session_state.visit_count = 0
+    
+# Increment visit count on each session
+st.session_state.visit_count += 1
+
+def show_footer():
+    """Display footer with creator information and visit count"""
+    st.markdown("---")
+    st.markdown(
+        f"""
+        <div style="text-align: center; padding: 20px; background-color: #f0f2f6; border-radius: 10px; margin-top: 30px;">
+            <p style="margin: 5px 0; color: #333;">
+                <strong>Created by Sakthivel Nachimuthu</strong>
+            </p>
+            <p style="margin: 5px 0;">
+                <a href="https://github.com/dcnsakthi/AIAgentCanva" target="_blank" style="text-decoration: none; color: #0078D4; margin: 0 10px;">
+                    🔗 GitHub
+                </a> | 
+                <a href="https://www.linkedin.com/in/dcnsakthi/" target="_blank" style="text-decoration: none; color: #0078D4; margin: 0 10px;">
+                    💼 LinkedIn
+                </a>
+            </p>
+            <p style="margin: 5px 0; color: #666; font-size: 0.9em;">
+                Visit Count: <strong>{st.session_state.visit_count}</strong>
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def main():
     """Main application entry point"""
@@ -134,6 +164,9 @@ def main():
         deployment.show()
     else:
         st.error("Page not found")
+    
+    # Show footer on all pages
+    show_footer()
 
 if __name__ == "__main__":
     main()
